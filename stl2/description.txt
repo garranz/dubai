@@ -1,0 +1,43 @@
+Domain Corners:
+(Latitude, Longitude)
+
+
+	^ Y
+	|
+	|	north
+	NW -------------------- NE
+west	|			|
+		|			|	east
+===>	|			|
+wind	|			|
+	SW -------------------- SE -----> X
+		south
+
+
+// =====================================================
+// === Case 1 == Dubai Marina ==========================
+// =====================================================
+
+min_lat = 25.067170
+min_long = 55.114826
+max_lat = 25.094006
+max_long = 55.150855
+
+NW: (25.09400590068833, 55.114825924643)
+NE: (25.09400590068833, 55.15085462696219)
+SE: (25.06716983774156, 55.15085462696219)
+SW: (25.06716983774156, 55.114825924643)
+
+// -- -- Padding -- --
+The domain of Case 1 has 400m meters padding to each side.
+
+// -- -- Boundary conditions -- --
+Atmospheric Boundary Layer: logarithmic wind profile
+z0 = 0.0002   # Surface roughness length
+u_star = 0.5  # Friction velocity
+k = 0.4       # von Karman constant
+
+As wind from the west pointing to the east / pointing into the positive x-axis.
+z0=0.0002, as the west boundary of the domain is on the sea. 
+With the largest velocity on the inlet being U=[18.6, 0.0, 0.0]m/s 
+at ~615m in z-direction [not exact values]
