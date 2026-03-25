@@ -20,7 +20,7 @@ def fullstl( stl_input_name: str, stl_output_name: str):
     building_meshes = []
 
     for filename in os.listdir(buildings_folder):
-        if filename.endswith('.stl'):
+        if filename.startswith('building') and filename.endswith('.stl'):
             filepath = os.path.join(buildings_folder, filename)
             mesh = trimesh.load(filepath)
             assert isinstance(mesh, trimesh.Trimesh)

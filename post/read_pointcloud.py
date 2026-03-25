@@ -1,11 +1,11 @@
-from common import datapath
+from common import datapath, figspath
 from ngpost import *
 from extractcity import stl_to_2d_view
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
-    basenm = 'geo2_l3'
+    basenm = 'geo3_l6'
     Nx, Ny, Nz = 18, 20, 15
 
     pp = PointCloud( datapath / basenm / 'pcprobes', 'points' )
@@ -32,6 +32,7 @@ if __name__ == "__main__":
     # Create NaN-filled matrix for velocity
     vel_avg = np.full((3, Nx, Ny, Nz), np.nan)
     vel_rms = np.full((3, Nx, Ny, Nz), np.nan)
+    vel_rey = np.full((3, Nx, Ny, Nz), np.nan)
     p_avg = np.full((Nx, Ny, Nz), np.nan)
     p_rms = np.full((Nx, Ny, Nz), np.nan)
 
@@ -46,6 +47,7 @@ if __name__ == "__main__":
         for r_ in range(3):
             vel_avg[r_,i,j,k] = dd[ pp.vlist.index(f'AVG(U)[{r_}]') ]
             vel_rms[r_,i,j,k] = dd[ pp.vlist.index(f'RMS(U)[{r_}]') ]
+            vel_rey[r_,i,j,k] = dd[ pp.vlist.index(f'REY(U)[{r_}]') ]
 
 
     ixplot = range( 2, Nx-2, 3 )
@@ -58,9 +60,11 @@ if __name__ == "__main__":
     f1,a1 = plt.subplots()
     f2,a2 = plt.subplots( 3, 1, sharex=True, sharey=True )
     f3,a3 = plt.subplots( 3, 1, sharex=True, sharey=True )
+    f4,a4 = plt.subplots( 3, 1, sharex=True, sharey=True )
     a1.add_collection( builds )
     k = 0
     xx = (x_vals - x_vals[0])/30
+    reylab = ('uv', 'uw', 'vw' )
     for j in iyplot:
         for i in ixplot:
             a1.plot( x_vals[i], y_vals[j], 'o', c=cols[k], ms=12, mec='k', mew=.5 )
@@ -72,19 +76,24 @@ if __name__ == "__main__":
                 a3[vin].plot( vel_rms[vin,i,j,:]*5 + xx[i], z_vals, c=cols[k] )
                 a3[vin].axvline( xx[i], ls='--', c='.5', lw=.5 )
                 a3[vin].set_title( f'rms({chr(97+20+vin)})' )
+
+                a4[vin].plot( vel_rey[vin,i,j,:]*2 + xx[i], z_vals, c=cols[k] )
+                a4[vin].axvline( xx[i], ls='--', c='.5', lw=.5 )
+                a4[vin].set_title( f'{reylab[vin]}' )
             k += 1 
             
-    for aa in (a2,a3):
+    for aa in (a2,a3,a4):
         for a in aa: 
             a.set_ylim( 0, 600 )
             a.set_ylabel( r'$z$ [m]')
 
-    plt.setp( a2[-1], xticks=xx[ixplot], xticklabels=(f'{x_vals[i]:.0f}' for i in
-                                                     ixplot ), xlabel=r'$x$ [m]')
-    plt.setp( a3[-1], xticks=xx[ixplot], xticklabels=(f'{x_vals[i]:.0f}' for i in
+        plt.setp( aa[-1], xticks=xx[ixplot], xticklabels=(f'{x_vals[i]:.0f}' for i in
                                                      ixplot ), xlabel=r'$x$ [m]')
 
     a1.set_xlabel(r'$x$ [m]')
     a1.set_ylabel(r'$y$ [m]')
 
-    for f in (f1,f2,f3): f1.tight_layout()
+    for k,f in enumerate((f1,f2,f3,f4)): 
+        f.tight_layout()
+        f.savefig( figspath / f'{basenm}_pointcloud_{k}.pdf', format='pdf',
+                  transparent=True)

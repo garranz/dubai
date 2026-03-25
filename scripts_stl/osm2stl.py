@@ -160,7 +160,8 @@ def create_box_stl_xoff(filename,
 
 
 def json2stls( input_json: str, output_stl_name: str,
-              x_offsets: tuple[int,int], y_offset: int, z_offset: int):
+              x_offsets: tuple[int,int], y_offset: int, z_offset: int,
+              export_buildings: bool = False):
 
 
     output_stl = output_stl_name + '.stl'
@@ -214,41 +215,43 @@ def json2stls( input_json: str, output_stl_name: str,
                         y_offset=y_offset,
                         z_offset=z_offset)  # bbox_size[2]/2.0)
 
-    # ===== Export individual building meshes =====
-    path = Path("buildings")
-    if path.exists():
-        shutil.rmtree(path)
-    os.makedirs("buildings", exist_ok=True)
-    building_counter = 1
+    if export_buildings:
 
-    for bld in buildings:
-        tags = bld.get('tags', {})
-        height = get_building_height(tags)
+        # ===== Export individual building meshes =====
+        path = Path("buildings")
+        if path.exists():
+            shutil.rmtree(path)
+        os.makedirs("buildings", exist_ok=True)
+        building_counter = 1
 
-        mesh_obj = None
-        if bld['type'] == 'way' and 'nodes' in bld:
-            polygon = extract_polygon_from_way(bld['nodes'], node_index)
-            if len(polygon) < 3:
-                continue
-            mesh_obj = extrude_polygon_to_watertight_mesh(
-                polygon, height=height)
+        for bld in buildings:
+            tags = bld.get('tags', {})
+            height = get_building_height(tags)
 
-        elif bld['type'] == 'relation' and 'members' in bld:
-            continue  # skip relations here as well
+            mesh_obj = None
+            if bld['type'] == 'way' and 'nodes' in bld:
+                polygon = extract_polygon_from_way(bld['nodes'], node_index)
+                if len(polygon) < 3:
+                    continue
+                mesh_obj = extrude_polygon_to_watertight_mesh(
+                    polygon, height=height)
 
-        if mesh_obj:
-            mesh_obj = normalize_mesh(mesh_obj, min_coords=bbox_min)
-            filename = f"building_{building_counter:07d}.stl"
-            filepath = os.path.join("buildings", filename)
-            mesh_obj.export(filepath)
-            print(f"Saved individual building STL: {filename}")
-            building_counter += 1
+            elif bld['type'] == 'relation' and 'members' in bld:
+                continue  # skip relations here as well
 
-    if building_counter == 1:
-        print("No individual building meshes were created.")
-    else:
-        print(
-            f"Saved {building_counter - 1} individual watertight building STL files.")
+            if mesh_obj:
+                mesh_obj = normalize_mesh(mesh_obj, min_coords=bbox_min)
+                filename = f"building_{building_counter:07d}.stl"
+                filepath = os.path.join("buildings", filename)
+                mesh_obj.export(filepath)
+                print(f"Saved individual building STL: {filename}")
+                building_counter += 1
+
+        if building_counter == 1:
+            print("No individual building meshes were created.")
+        else:
+            print(
+                f"Saved {building_counter - 1} individual watertight building STL files.")
 
     print("Done.")
 

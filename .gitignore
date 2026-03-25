@@ -1,3 +1,8 @@
 *.sles
 *.mles
 *.exe
+*.sbin
+__pycache__/
+outs/
+
+*.stl

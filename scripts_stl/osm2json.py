@@ -121,6 +121,7 @@ def geojson2json( geojson_file: str)->str:
 
     # Create transformer (same as original script)
     transformer = Transformer.from_crs("EPSG:4326", epsg, always_xy=True)
+    #transformer = Transformer.from_crs("EPSG:4326", "EPSG:32640", always_xy=True)
 
     # Extract nodes and buildings
     print("Processing features...")

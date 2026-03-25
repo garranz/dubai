@@ -9,15 +9,15 @@ if __name__ == "__main__":
     output_json = geojson2json( f"{cityname}.geojson" )
 
     # Domain:
-    y_offset = 800
-    x_offsets = ( y_offset, 1600 )
+    y_offset = 400
+    x_offsets = ( y_offset, 1200 )
 
     # Create all the buildings and the box
-    json2stls( output_json, cityname, x_offsets, y_offset, z_offset=200 )
+    json2stls( output_json, cityname, x_offsets, y_offset, z_offset=300 )
 
     # Create the flow volume
-    stl_name = f"{cityname}_x{x_offsets[0]+x_offsets[1]}_y{2*y_offset}"
-    fullstl( cityname, stl_name )
+    #stl_name = f"{cityname}_x{x_offsets[0]+x_offsets[1]}_y{2*y_offset}_dummy"
+    #fullstl( cityname, stl_name )
 
 
 
