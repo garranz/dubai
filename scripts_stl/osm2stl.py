@@ -81,7 +81,6 @@ def extrude_polygon_to_watertight_mesh(polygon, height=10.0):
     # Repair if needed
     if not solid.is_watertight:
         solid = solid.fill_holes()
-    # solid.repair.fix_normals()
 
     if not solid.is_watertight:
         print("Warning: mesh extrusion resulted in a non-watertight mesh.")
@@ -141,15 +140,12 @@ def create_box_stl_xoff(filename,
     z_offset : float
         Offset in Z above highest building.
     """
-    # Calculate total dimensions with asymmetric padding
     total_x = x_len + x0_offset + x1_offset
     total_y = y_len + 2*y_offset
     total_z = z_len + z_offset
 
-    # Create box with total dimensions
     box = trimesh.creation.box(extents=[total_x, total_y, total_z])
 
-    # Calculate translation considering asymmetric x padding
     x_center = x_len/2.0 + (x1_offset - x0_offset)/2.0
     y_center = y_len/2.0
     z_center = z_len/2.0 + z_offset/2.0
@@ -159,10 +155,66 @@ def create_box_stl_xoff(filename,
     print(f"Box STL saved as '{filename}'.")
 
 
-def json2stls( input_json: str, output_stl_name: str,
-              x_offsets: tuple[int,int], y_offset: int, z_offset: int,
-              export_buildings: bool = False):
+def create_cylinder_stl(filename,
+                        x_len, y_len, z_len,
+                        r_offset=0.0,
+                        z_offset=0.0,
+                        sections=128):
+    """
+    Create a vertical cylinder (axis along Z) centered on the building cluster
+    footprint, and save as STL.
 
+    The cylinder radius is set to half the diagonal of the XY bounding box plus
+    r_offset, so it fully contains all buildings regardless of orientation.
+
+    Parameters:
+    -----------
+    x_len, y_len, z_len : float
+        Bounding box dimensions of the (already-normalised) buildings.
+    r_offset : float
+        Extra radial padding beyond the minimum enclosing radius.
+    z_offset : float
+        Extra height above the tallest building.
+    sections : int
+        Number of facets around the cylinder circumference (higher = smoother).
+    """
+    # Minimum enclosing radius of the XY footprint + padding
+    radius = 0.5 * np.sqrt(x_len**2 + y_len**2) + r_offset
+    total_z = z_len + z_offset
+
+    # trimesh creates a cylinder centred at the origin with axis along Z
+    cyl = trimesh.creation.cylinder(radius=radius,
+                                    height=total_z,
+                                    sections=sections)
+
+    # Translate so the base sits at Z=0 and the XY centre aligns with the
+    # building cluster centre
+    cyl.apply_translation([x_len / 2.0,
+                           y_len / 2.0,
+                           total_z / 2.0])
+
+    cyl.export(filename)
+    print(f"Cylinder STL saved as '{filename}'.")
+    print(f"  radius = {radius:.2f} m  (diagonal/2 + r_offset={r_offset})")
+    print(f"  height = {total_z:.2f} m  (z_len + z_offset={z_offset})")
+
+
+# ------------------------------------------------------------------------------
+
+
+def json2stls(input_json: str, output_stl_name: str,
+              x_offsets: tuple[int, int], y_offset: int, z_offset: int,
+              export_buildings: bool = False,
+              domain: str = 'box'):
+    """
+    Parameters
+    ----------
+    domain : {'box', 'cylinder'}
+        Shape of the outer flow domain.
+        - 'box'      : rectangular domain, same behaviour as before.
+        - 'cylinder' : circular domain. x_offsets[0] is used as the radial
+                       padding (r_offset); x_offsets[1] is ignored.
+    """
 
     output_stl = output_stl_name + '.stl'
 
@@ -188,7 +240,6 @@ def json2stls( input_json: str, output_stl_name: str,
                 polygon, height=height)
 
         elif bld['type'] == 'relation' and 'members' in bld:
-            # Skip complex multipolygon relations for now
             continue
 
         if mesh_obj:
@@ -208,16 +259,24 @@ def json2stls( input_json: str, output_stl_name: str,
     print(f"Bounding box min: {bbox_min}, max: {bbox_max}")
     print(f"Bounding box size (dx, dy, dz): {bbox_size}")
 
-    # Create box STL for bounding box visualization
-    create_box_stl_xoff(f"box_{output_stl_name}.stl",
-                        *bbox_size,
-                        x0_offset=x_offsets[0], x1_offset=x_offsets[1],
-                        y_offset=y_offset,
-                        z_offset=z_offset)  # bbox_size[2]/2.0)
+    # Create outer domain STL
+    domain_filename = f"box_{output_stl_name}.stl"
+
+    if domain == 'cylinder':
+        r_offset = x_offsets[0]   # reuse first offset as radial padding
+        create_cylinder_stl(domain_filename,
+                            *bbox_size,
+                            r_offset=r_offset,
+                            z_offset=z_offset)
+    else:
+        create_box_stl_xoff(domain_filename,
+                            *bbox_size,
+                            x0_offset=x_offsets[0], x1_offset=x_offsets[1],
+                            y_offset=y_offset,
+                            z_offset=z_offset)
 
     if export_buildings:
 
-        # ===== Export individual building meshes =====
         path = Path("buildings")
         if path.exists():
             shutil.rmtree(path)
@@ -237,7 +296,7 @@ def json2stls( input_json: str, output_stl_name: str,
                     polygon, height=height)
 
             elif bld['type'] == 'relation' and 'members' in bld:
-                continue  # skip relations here as well
+                continue
 
             if mesh_obj:
                 mesh_obj = normalize_mesh(mesh_obj, min_coords=bbox_min)
@@ -254,5 +313,3 @@ def json2stls( input_json: str, output_stl_name: str,
                 f"Saved {building_counter - 1} individual watertight building STL files.")
 
     print("Done.")
-
-
